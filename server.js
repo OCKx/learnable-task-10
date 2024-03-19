@@ -18,6 +18,10 @@ dbConnector.connectToDb((err) => {
 });
 
 // Define routes
+app.get('/', (req, res) => {
+    res.send('Welcome to the hotel management API');
+});
+
 // Your route handlers will go here
 
 app.listen(PORT, () => {

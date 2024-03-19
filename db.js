@@ -11,6 +11,7 @@ module.exports = {
         })
         .catch((err) => {
             console.log(err);
+            console.log('cannot connect.....');
             return cb(err)
         })
     },
