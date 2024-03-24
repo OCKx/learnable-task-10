@@ -1,19 +1,20 @@
 const express = require('express');
+const { connectToDb, getDb } = require('./db');
 const bodyParser = require('body-parser');
-const dbConnector = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
 app.use(bodyParser.json());
 
 // Connect to the database
-dbConnector.connectToDb((err) => {
-    if (err) {
-        console.error('Error connecting to database:', err);
-        process.exit(1);
-    } else {
-        console.log('Connected to database successfully');
+const PORT = process.env.PORT || 3000;
+let db;
+
+connectToDb((err) => {
+    if (!err) {
+        app.listen(PORT, () => {
+            console.log(`listening to port ${PORT}`);
+        })
+        db = getDb()
     }
 });
 
@@ -22,11 +23,6 @@ app.get('/', (req, res) => {
     res.send('Welcome to the hotel management API');
 });
 
-// Your route handlers will go here
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
 
 // Create a POST endpoint for storage of room types
 app.post('/api/v1/rooms_types', (req, res) => {
@@ -37,7 +33,7 @@ app.post('/api/v1/rooms_types', (req, res) => {
     const roomType = {
         name: name
     };
-    dbConnector.getDb().collection('rooms_types').insertOne(roomType, (err, result) => {
+    db.collection('rooms_types').insertOne(roomType, (err, result) => {
         if (err) {
             console.error('Error storing room type:', err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -48,13 +44,14 @@ app.post('/api/v1/rooms_types', (req, res) => {
 
 // Create a GET endpoint for fetching all room types
 app.get('/api/v1/rooms_types', (req, res) => {
-    dbConnector.getDb().collection('rooms_types').find({}).toArray((err, roomTypes) => {
-        if (err) {
-            console.error('Error fetching room types:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-        res.json(roomTypes);
-    });
+    let roomstypes = [];
+    db.collection('rooms_types').find().forEach(roomtype => {
+        roomstypes.push(roomtype)
+    }).then(() => {
+        res.status(200).json(roomstypes)
+    }).catch(() => {
+        res.status(500).json({error: 'cannot fetch rooms_types'})
+    })
 });
 
 // Create a POST endpoint for storage of rooms
@@ -68,7 +65,7 @@ app.post('/api/v1/rooms', (req, res) => {
         roomType: roomType,
         price: price
     };
-    dbConnector.getDb().collection('rooms').insertOne(room, (err, result) => {
+    db.collection('rooms').insertOne(room, (err, result) => {
         if (err) {
             console.error('Error storing room:', err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -96,7 +93,7 @@ app.get('/api/v1/rooms', (req, res) => {
             query.price.$lte = parseInt(maxPrice);
         }
     }
-    dbConnector.getDb().collection('rooms').find(query).toArray((err, rooms) => {
+    db.collection('rooms').find(query).toArray((err, rooms) => {
         if (err) {
             console.error('Error fetching rooms:', err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -122,7 +119,7 @@ app.patch('/api/v1/rooms/:roomId', (req, res) => {
     if (price) {
         updateFields.price = price;
     }
-    dbConnector.getDb().collection('rooms').updateOne({ _id: roomId }, { $set: updateFields }, (err, result) => {
+    db.collection('rooms').updateOne({ _id: roomId }, { $set: updateFields }, (err, result) => {
         if (err) {
             console.error('Error updating room:', err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -134,7 +131,7 @@ app.patch('/api/v1/rooms/:roomId', (req, res) => {
 // Create a DELETE endpoint for deleting a room using its id
 app.delete('/api/v1/rooms/:roomId', (req, res) => {
     const { roomId } = req.params;
-    dbConnector.getDb().collection('rooms').deleteOne({ _id: roomId }, (err, result) => {
+    db.collection('rooms').deleteOne({ _id: roomId }, (err, result) => {
         if (err) {
             console.error('Error deleting room:', err);
             return res.status(500).json({ error: 'Internal server error' });
@@ -146,7 +143,7 @@ app.delete('/api/v1/rooms/:roomId', (req, res) => {
 // Create a GET endpoint for fetching a room using its id
 app.get('/api/v1/rooms/:roomId', (req, res) => {
     const { roomId } = req.params;
-    dbConnector.getDb().collection('rooms').findOne({ _id: roomId }, (err, room) => {
+    db.collection('rooms').findOne({ _id: roomId }, (err, room) => {
         if (err) {
             console.error('Error fetching room:', err);
             return res.status(500).json({ error: 'Internal server error' });
