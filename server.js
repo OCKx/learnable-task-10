@@ -1,6 +1,7 @@
 const express = require('express');
 const { connectToDb, getDb } = require('./db');
 const bodyParser = require('body-parser');
+const { ObjectId } = require('mongodb');
 
 const app = express();
 app.use(bodyParser.json());
@@ -25,25 +26,23 @@ app.get('/', (req, res) => {
 
 
 // Create a POST endpoint for storage of room types
-app.post('/api/v1/rooms_types', (req, res) => {
+app.post('/api/v1/rooms-types', (req, res) => {
     const { name } = req.body;
-    if (!name) {
-        return res.status(400).json({ error: 'Name is required' });
-    }
     const roomType = {
         name: name
     };
-    db.collection('rooms_types').insertOne(roomType, (err, result) => {
-        if (err) {
-            console.error('Error storing room type:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-        res.status(201).json(result.ops[0]);
-    });
+
+    db.collection('rooms_types').insertOne(roomType)
+        .then((doc) => {
+            res.status(201).json(doc);
+        })
+        .catch((err) => {
+            res.status(500).json({ error: 'Internal server error' });
+        });
 });
 
 // Create a GET endpoint for fetching all room types
-app.get('/api/v1/rooms_types', (req, res) => {
+app.get('/api/v1/rooms-types', (req, res) => {
     let roomstypes = [];
     db.collection('rooms_types').find().forEach(roomtype => {
         roomstypes.push(roomtype)
@@ -57,22 +56,20 @@ app.get('/api/v1/rooms_types', (req, res) => {
 // Create a POST endpoint for storage of rooms
 app.post('/api/v1/rooms', (req, res) => {
     const { name, roomType, price } = req.body;
-    if (!name || !roomType || !price) {
-        return res.status(400).json({ error: 'Name, roomType, and price are required' });
-    }
     const room = {
         name: name,
-        roomType: roomType,
+        roomType: new ObjectId(roomType),
         price: price
     };
-    db.collection('rooms').insertOne(room, (err, result) => {
-        if (err) {
-            console.error('Error storing room:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-        res.status(201).json(result.ops[0]);
-    });
-});
+
+    db.collection('rooms').insertOne(room)
+        .then((doc) => {
+            res.status(201).json(doc)
+        })
+        .catch((err) => {
+            res.status(500).json({error: 'bad request'})
+        })
+})
 
 // Create a GET endpoint for fetching all rooms with optional filters
 app.get('/api/v1/rooms', (req, res) => {
@@ -141,16 +138,10 @@ app.delete('/api/v1/rooms/:roomId', (req, res) => {
 });
 
 // Create a GET endpoint for fetching a room using its id
-app.get('/api/v1/rooms/:roomId', (req, res) => {
-    const { roomId } = req.params;
-    db.collection('rooms').findOne({ _id: roomId }, (err, room) => {
-        if (err) {
-            console.error('Error fetching room:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-        if (!room) {
-            return res.status(404).json({ error: 'Room not found' });
-        }
-        res.json(room);
-    });
-});
+app.get('/api/v1/rooms/:roomid', (req, res) => {
+    db.collection('rooms').findOne({_id: new ObjectId(req.params.roomid)}).then((doc) => {
+        res.status(200).json(doc)
+    }).catch((err) => {
+        res.status(500).json({error: 'cannot complete request'})
+    })
+})
