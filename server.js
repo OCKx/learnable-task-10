@@ -74,6 +74,8 @@ app.post('/api/v1/rooms', (req, res) => {
 // Create a GET endpoint for fetching all rooms with optional filters
 app.get('/api/v1/rooms', (req, res) => {
     const { search, roomType, minPrice, maxPrice } = req.query;
+    console.log('Request Query:', req.query); 
+
     const query = {};
     if (search) {
         query.name = { $regex: search, $options: 'i' };
@@ -90,6 +92,8 @@ app.get('/api/v1/rooms', (req, res) => {
             query.price.$lte = parseInt(maxPrice);
         }
     }
+    console.log('Query Object:', query);
+
     db.collection('rooms').find(query).toArray((err, rooms) => {
         if (err) {
             console.error('Error fetching rooms:', err);
@@ -100,12 +104,12 @@ app.get('/api/v1/rooms', (req, res) => {
 });
 
 // Create a PATCH endpoint for editing a room using its id
-app.patch('/api/v1/rooms/:roomId', (req, res) => {
-    const { roomId } = req.params;
+app.patch('/api/v1/rooms/:Id', (req, res) => {
     const { name, roomType, price } = req.body;
     if (!name && !roomType && !price) {
         return res.status(400).json({ error: 'At least one field to update is required' });
     }
+
     const updateFields = {};
     if (name) {
         updateFields.name = name;
@@ -116,24 +120,27 @@ app.patch('/api/v1/rooms/:roomId', (req, res) => {
     if (price) {
         updateFields.price = price;
     }
-    db.collection('rooms').updateOne({ _id: roomId }, { $set: updateFields }, (err, result) => {
-        if (err) {
-            console.error('Error updating room:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-        res.json({ message: 'Room updated successfully' });
+
+    db.collection('rooms').updateOne(
+        { _id: new ObjectId(req.params.Id) },
+        { $set: updateFields },
+    )
+    .then((result) => {
+        res.status(200).json(result);
+    })
+    .catch((err) => {
+        console.error('Error updating room:', err);
+        res.status(500).json({ error: 'Internal server error' });
     });
 });
 
+
 // Create a DELETE endpoint for deleting a room using its id
-app.delete('/api/v1/rooms/:roomId', (req, res) => {
-    const { roomId } = req.params;
-    db.collection('rooms').deleteOne({ _id: roomId }, (err, result) => {
-        if (err) {
-            console.error('Error deleting room:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-        res.json({ message: 'Room deleted successfully' });
+app.delete('/api/v1/rooms/:id', (req, res) => {
+    db.collection('rooms').deleteOne({ _id: new ObjectId(req.params.id)}).then((doc) => {
+        res.status(200).json(doc)
+    }).catch((err) => {
+        res.status(500).json({error: 'cannot complete request'})
     });
 });
 
