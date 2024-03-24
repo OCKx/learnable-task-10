@@ -2,6 +2,8 @@ const express = require('express');
 const { connectToDb, getDb } = require('./db');
 const bodyParser = require('body-parser');
 const { ObjectId } = require('mongodb');
+const { validateUser, authenticate, authorize, generateToken } = require('./user');
+require("dotenv").config()
 
 const app = express();
 app.use(bodyParser.json());
@@ -26,7 +28,7 @@ app.get('/', (req, res) => {
 
 
 // Create a POST endpoint for storage of room types
-app.post('/api/v1/rooms-types', (req, res) => {
+app.post('/api/v1/rooms-types', validateUser, authenticate, authorize('admin'), (req, res) => {
     const { name } = req.body;
     const roomType = {
         name: name
@@ -152,3 +154,9 @@ app.get('/api/v1/rooms/:roomid', (req, res) => {
         res.status(500).json({error: 'cannot complete request'})
     })
 })
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Internal Server Error');
+});

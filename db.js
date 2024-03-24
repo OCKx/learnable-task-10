@@ -4,9 +4,10 @@ let dbConnection;
 
 module.exports = {
     connectToDb: (cb) => {
-        MongoClient.connect('mongodb://localhost:27017/hotel')
+        MongoClient.connect(process.env.MONGOURL)
         .then((client) => {
             dbConnection = client.db();
+            console.log("connected successfully");
             return cb()
         })
         .catch((err) => {

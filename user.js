@@ -21,8 +21,8 @@ function validateUser(req, res, next) {
 
 // Mock user data for demonstration
 const users = [
-    { _id: ObjectId(), username: 'admin', password: bcrypt.hashSync('adminpassword', 10), role: 'admin' },
-    { _id: ObjectId(), username: 'guest', password: bcrypt.hashSync('guestpassword', 10), role: 'guest' }
+    { _id: new ObjectId(), username: 'admin', password: bcrypt.hashSync('adminpassword', 10), role: 'admin' },
+    { _id: new ObjectId(), username: 'guest', password: bcrypt.hashSync('guestpassword', 10), role: 'guest' }
 ];
 
 // Function to find a user by username
